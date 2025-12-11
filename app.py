@@ -1672,125 +1672,121 @@ with st.sidebar:
         if env_exists:
             st.info(t("keys_env_file"))
         else:
-            st.warning("⚠️ .env file not found. Keys will be created when you save them.")
+            st.info("💡 Enter your API keys below. They will be saved automatically.")
 
-        # API Key inputs with security features
-        with st.form("api_keys_form"):
-            # OpenRouter Key
-            openrouter_key = st.text_input(
-                t("openrouter_key"),
-                value=current_keys.get("openrouter", ""),
-                type="password",
-                help="API key for OpenRouter services"
-            )
-
-            # ModelScope Key
-            modelscope_key = st.text_input(
-                t("modelscope_key"),
-                value=current_keys.get("modelscope", ""),
-                type="password",
-                help="API key for ModelScope services"
-            )
-
-            # SiliconFlow Key
-            siliconflow_key = st.text_input(
-                t("siliconflow_key"),
-                value=current_keys.get("siliconflow", ""),
-                type="password",
-                help="API key for SiliconFlow services"
-            )
-
-            # DashScope Key
-            dashscope_key = st.text_input(
-                t("dashscope_key"),
-                value=current_keys.get("dashscope", ""),
-                type="password",
-                help="API key for DashScope services"
-            )
-
-            # BigModel Key
-            bigmodel_key = st.text_input(
-                t("bigmodel_key"),
-                value=current_keys.get("bigmodel", ""),
-                type="password",
-                help="API key for BigModel services"
-            )
-
-            # Tavily Search Key
-            tavily_key = st.text_input(
-                t("tavily_key"),
-                value=current_keys.get("tavily_api_key", ""),
-                type="password",
-                help="API key for Tavily web search"
-            )
-
-            # Save button
-            col1, col2 = st.columns([2, 1])
-            with col1:
-                save_button = st.form_submit_button(
-                    t("save_keys"),
-                    use_container_width=True,
-                    type="primary"
-                )
-            with col2:
-                test_button = st.form_submit_button(
-                    "Test Keys",
-                    use_container_width=True
-                )
-
-            if save_button:
-                # Prepare keys dictionary
-                keys_to_save = {
-                    "openrouter": openrouter_key.strip(),
-                    "modelscope": modelscope_key.strip(),
-                    "siliconflow": siliconflow_key.strip(),
-                    "dashscope": dashscope_key.strip(),
-                    "bigmodel": bigmodel_key.strip(),
-                    "tavily_api_key": tavily_key.strip()
-                }
-
-                # Save to .env file
-                if save_api_keys_to_env(keys_to_save):
-                    st.success(t("keys_saved"))
-                    # Update search manager if it was already loaded
+        # Function to save a single API key
+        def save_single_key(key_name, widget_key):
+            """Save a single API key when it changes"""
+            new_value = st.session_state.get(widget_key, "").strip()
+            current = load_api_keys()
+            if current.get(key_name) != new_value:
+                current[key_name] = new_value
+                if save_api_keys_to_env(current):
+                    # Reload config module to pick up new keys
                     import importlib
+                    importlib.reload(config)
                     if 'search_providers' in sys.modules:
                         importlib.reload(sys.modules['search_providers'])
-                    st.rerun()
-                else:
-                    st.error("Failed to save API keys. Please check file permissions.")
 
-            if test_button:
-                # Test if keys are properly loaded
-                with st.spinner("Testing API keys..."):
-                    # Test Tavily key (web search)
-                    if tavily_key.strip():
-                        try:
-                            from search_providers import get_search_manager
-                            search_manager = get_search_manager()
-                            # Temporarily set the key
-                            os.environ['tavily_api_key'] = tavily_key.strip()
-                            # Test with a simple search
-                            import asyncio
-                            result = asyncio.run(search_manager.perform_search("test"))
-                            if result:
-                                st.success("✅ Tavily API key is valid")
-                        except Exception as e:
-                            st.error(f"❌ Tavily API key error: {str(e)}")
+        # API Key inputs with auto-save on change
+        # OpenRouter Key
+        st.text_input(
+            t("openrouter_key"),
+            value=current_keys.get("openrouter", ""),
+            type="password",
+            help="API key for OpenRouter services",
+            key="openrouter_key_input",
+            on_change=save_single_key,
+            args=("openrouter", "openrouter_key_input")
+        )
 
-                    # Show status for all keys
-                    key_status = {
-                        "openrouter": "✅" if openrouter_key.strip() else "⚠️ Not set",
-                        "modelscope": "✅" if modelscope_key.strip() else "⚠️ Not set",
-                        "siliconflow": "✅" if siliconflow_key.strip() else "⚠️ Not set",
-                        "dashscope": "✅" if dashscope_key.strip() else "⚠️ Not set",
-                        "bigmodel": "✅" if bigmodel_key.strip() else "⚠️ Not set",
-                        "tavily_api_key": "✅" if tavily_key.strip() else "⚠️ Not set"
-                    }
+        # ModelScope Key
+        st.text_input(
+            t("modelscope_key"),
+            value=current_keys.get("modelscope", ""),
+            type="password",
+            help="API key for ModelScope services",
+            key="modelscope_key_input",
+            on_change=save_single_key,
+            args=("modelscope", "modelscope_key_input")
+        )
 
-                    st.write("**Key Status:**")
-                    for key_name, status in key_status.items():
-                        st.write(f"- {key_name}: {status}")
+        # SiliconFlow Key
+        st.text_input(
+            t("siliconflow_key"),
+            value=current_keys.get("siliconflow", ""),
+            type="password",
+            help="API key for SiliconFlow services",
+            key="siliconflow_key_input",
+            on_change=save_single_key,
+            args=("siliconflow", "siliconflow_key_input")
+        )
+
+        # DashScope Key
+        st.text_input(
+            t("dashscope_key"),
+            value=current_keys.get("dashscope", ""),
+            type="password",
+            help="API key for DashScope services",
+            key="dashscope_key_input",
+            on_change=save_single_key,
+            args=("dashscope", "dashscope_key_input")
+        )
+
+        # BigModel Key
+        st.text_input(
+            t("bigmodel_key"),
+            value=current_keys.get("bigmodel", ""),
+            type="password",
+            help="API key for BigModel services",
+            key="bigmodel_key_input",
+            on_change=save_single_key,
+            args=("bigmodel", "bigmodel_key_input")
+        )
+
+        # Tavily Search Key
+        st.text_input(
+            t("tavily_key"),
+            value=current_keys.get("tavily_api_key", ""),
+            type="password",
+            help="API key for Tavily web search",
+            key="tavily_key_input",
+            on_change=save_single_key,
+            args=("tavily_api_key", "tavily_key_input")
+        )
+
+        # Test Keys button (optional, outside of form now)
+        st.divider()
+        if st.button("🧪 Test Keys", use_container_width=True):
+            # Reload current keys
+            test_keys = load_api_keys()
+            with st.spinner("Testing API keys..."):
+                # Test Tavily key (web search)
+                if test_keys.get("tavily_api_key", "").strip():
+                    try:
+                        from search_providers import get_search_manager
+                        os.environ['tavily_api_key'] = test_keys["tavily_api_key"].strip()
+                        search_manager = get_search_manager()
+                        import asyncio
+                        result = asyncio.run(search_manager.perform_search("test"))
+                        if result:
+                            st.success("✅ Tavily API key is valid")
+                    except Exception as e:
+                        st.error(f"❌ Tavily API key error: {str(e)}")
+
+                # Show status for all keys
+                key_status = {
+                    "openrouter": "✅" if test_keys.get("openrouter", "").strip() else "⚠️ Not set",
+                    "modelscope": "✅" if test_keys.get("modelscope", "").strip() else "⚠️ Not set",
+                    "siliconflow": "✅" if test_keys.get("siliconflow", "").strip() else "⚠️ Not set",
+                    "dashscope": "✅" if test_keys.get("dashscope", "").strip() else "⚠️ Not set",
+                    "bigmodel": "✅" if test_keys.get("bigmodel", "").strip() else "⚠️ Not set",
+                    "tavily_api_key": "✅" if test_keys.get("tavily_api_key", "").strip() else "⚠️ Not set"
+                }
+
+                st.write("**Key Status:**")
+                for key_name, status in key_status.items():
+                    st.write(f"- {key_name}: {status}")
 
 
 
