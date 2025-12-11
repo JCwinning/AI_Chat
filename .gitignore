@@ -1,0 +1,9 @@
+# .gitignore
+.env
+.env.local
+.env.development
+.env.production
+
+settings.json
+
+chat_history.json
